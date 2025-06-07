@@ -11,11 +11,11 @@ const base64UrlToBuffer = (base64url) => {
   const str = atob(base64);
   const buffer = new ArrayBuffer(str.length);
   const byteView = new Uint8Array(buffer);
-  
+
   for (let i = 0; i < str.length; i++) {
     byteView[i] = str.charCodeAt(i);
   }
-  
+
   return buffer;
 };
 
@@ -39,7 +39,7 @@ class WebAuthnService {
 
     const rawResponse = await response.text();
     let options;
-    
+
     try {
       options = JSON.parse(rawResponse);
     } catch (e) {
@@ -102,7 +102,9 @@ class WebAuthnService {
       rawId: bufferToBase64Url(credential.rawId),
       type: credential.type,
       response: {
-        attestationObject: bufferToBase64Url(credential.response.attestationObject),
+        attestationObject: bufferToBase64Url(
+          credential.response.attestationObject,
+        ),
         clientDataJSON: bufferToBase64Url(credential.response.clientDataJSON),
       },
     };
@@ -132,7 +134,7 @@ class WebAuthnService {
 
     const rawResponse = await response.text();
     let options;
-    
+
     try {
       options = JSON.parse(rawResponse);
     } catch (e) {
@@ -180,7 +182,9 @@ class WebAuthnService {
       rawId: bufferToBase64Url(assertion.rawId),
       type: assertion.type,
       response: {
-        authenticatorData: bufferToBase64Url(assertion.response.authenticatorData),
+        authenticatorData: bufferToBase64Url(
+          assertion.response.authenticatorData,
+        ),
         clientDataJSON: bufferToBase64Url(assertion.response.clientDataJSON),
         signature: bufferToBase64Url(assertion.response.signature),
         userHandle: assertion.response.userHandle
@@ -228,7 +232,9 @@ class Client {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Error fetching offers: ${response.status} ${errorText}`);
+        throw new Error(
+          `Error fetching offers: ${response.status} ${errorText}`,
+        );
       }
 
       return await response.json();
@@ -320,15 +326,15 @@ class Client {
 
   async connectWebSocket() {
     this.ws = new WebSocket(`/api/ws?token=${encodeURI(this.token)}`);
-    
+
     this.ws.onopen = () => {
       console.log("WebSocket connection established");
     };
-    
+
     this.ws.onmessage = (event) => {
       console.log("Received message:", event.data);
     };
-    
+
     this.ws.onclose = () => {
       console.log("WebSocket connection closed");
     };
@@ -344,7 +350,9 @@ class Client {
       rawId: bufferToBase64Url(assertion.rawId),
       type: assertion.type,
       response: {
-        authenticatorData: bufferToBase64Url(assertion.response.authenticatorData),
+        authenticatorData: bufferToBase64Url(
+          assertion.response.authenticatorData,
+        ),
         clientDataJSON: bufferToBase64Url(assertion.response.clientDataJSON),
         signature: bufferToBase64Url(assertion.response.signature),
         userHandle: assertion.response.userHandle
@@ -702,17 +710,23 @@ class FilterBuilder {
   }
 
   setSpaceNeeded(spaceBuilder) {
-    this.filter.spaceNeeded = spaceBuilder?.build ? spaceBuilder.build() : spaceBuilder;
+    this.filter.spaceNeeded = spaceBuilder?.build
+      ? spaceBuilder.build()
+      : spaceBuilder;
     return this;
   }
 
   setLocationFrom(locationBuilder) {
-    this.filter.locationFrom = locationBuilder?.build ? locationBuilder.build() : locationBuilder;
+    this.filter.locationFrom = locationBuilder?.build
+      ? locationBuilder.build()
+      : locationBuilder;
     return this;
   }
 
   setLocationTo(locationBuilder) {
-    this.filter.locationTo = locationBuilder?.build ? locationBuilder.build() : locationBuilder;
+    this.filter.locationTo = locationBuilder?.build
+      ? locationBuilder.build()
+      : locationBuilder;
     return this;
   }
 
@@ -748,20 +762,3 @@ class FilterBuilder {
 
 // Export classes and create default client instance
 window.WebAuthnService = WebAuthnService;
-const client = new Client();
-
-// Example usage
-const loc = new LocationBuilder()
-  .setLongitude(12.3456)
-  .setLatitude(78.9012)
-  .build();
-
-const offer = new OfferBuilder()
-  .setTitle("My Offer")
-  .setPrice(100)
-  .setLocationFrom(loc)
-  .setLocationTo(loc)
-  .setStartDateTime(new Date())
-  .setEndDateTime(new Date().setHours(new Date().getHours() + 10))
-  .setCanTransport(new SpaceBuilder().setSeats(5).build())
-  .build();
