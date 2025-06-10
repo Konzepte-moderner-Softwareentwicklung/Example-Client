@@ -214,10 +214,62 @@ class Client {
   constructor() {
     this.base_url = "/api";
     this.user_url = `${this.base_url}/user`;
+    this.chat_url = `${this.base_url}/chat`;
     this.offer_url = `${this.base_url}/angebot`;
     this.token = null;
     this.ws = null;
     this.locationIntervalId = null;
+  }
+
+  connectToChat(chatId, onmessage) {
+    this.chat_ws = new WebSocket(
+      `${this.chat_url}/${chatId}?token=${encodeURIComponent(this.token)}`,
+    );
+    this.chat_ws.onopen = () => {
+      console.log("Connected to chat");
+    };
+    this.chat_ws.onmessage = onmessage;
+    this.chat_ws.onclose = () => {
+      console.log("Disconnected from chat");
+    };
+  }
+
+  removeChat(chatId) {
+    this.chat_ws.close();
+    this.chat_ws = null;
+  }
+
+  async getChat(chatId) {
+    const response = await fetch(this.chat_url + "/" + chatId, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `${this.token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Error fetching chat: ${response.status} ${errorText}`);
+    }
+
+    return await response.json();
+  }
+
+  async sendToChat(content, chatId) {
+    const response = await fetch(this.chat_url + "/" + chatId, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `${this.token}`,
+      },
+      body: JSON.stringify({ content }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Error sending message: ${response.status} ${errorText}`);
+    }
   }
 
   async getOffersByFilter(filter) {
@@ -263,7 +315,7 @@ class Client {
   }
 
   async getOfferById(id) {
-    const response = await fetch(`${this.offer_url}/${id}`, {
+    const response = await fetch(`${this.offer_url}/${id}/`, {
       method: "GET",
     });
 
@@ -325,6 +377,29 @@ class Client {
   }
 
   async connectWebSocket() {
+    this.locationWs = new WebSocket(
+      `/api/tracking?token=${encodeURI(this.token)}`,
+    );
+
+    if ("geolocation" in navigator) {
+      setInterval(() => {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const location = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            };
+
+            this.locationWs.send(JSON.stringify({ location: location }));
+            console.log("Sent location:", location);
+          },
+          (error) => {
+            console.error("Geolocation error:", error);
+          },
+        );
+      }, 5000);
+    }
+
     this.ws = new WebSocket(`/api/ws?token=${encodeURI(this.token)}`);
 
     this.ws.onopen = () => {
